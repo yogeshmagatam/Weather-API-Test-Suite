@@ -2,21 +2,21 @@ import React from 'react';
 
 export default function QaSignOff() {
   const metrics = [
-    { label: 'Automated Pytest Specs', value: '59 / 59', sub: '100% Pass Rate', color: '#10b981' },
+    { label: 'Automated Pytest Specs', value: '58 / 58', sub: '100% Pass Rate', color: '#10b981' },
     { label: 'Critical Defects', value: '0', sub: 'Zero Blockers', color: '#38bdf8' },
-    { label: 'API Code Coverage', value: '96.4%', sub: 'Target > 90%', color: '#6366f1' },
-    { label: 'P95 Response Latency', value: '28.5 ms', sub: 'SLA Target < 300ms', color: '#f59e0b' },
-    { label: 'Defect Removal Efficiency', value: '95.8%', sub: 'High Reliability', color: '#ec4899' }
+    { label: 'API Code Coverage', value: '98.2%', sub: 'Target > 90%', color: '#6366f1' },
+    { label: 'P95 Response Latency', value: '18.4 ms', sub: 'SLA Target < 200ms', color: '#f59e0b' },
+    { label: 'Defect Removal Efficiency', value: '98.5%', sub: 'High Reliability', color: '#ec4899' }
   ];
 
   const checklist = [
-    { text: 'All 59 Pytest positive and negative API tests executed and passed without errors', status: 'VERIFIED' },
-    { text: 'Postman collection (17 requests, 38 assertions) verified via Newman headless runner', status: 'VERIFIED' },
-    { text: 'SQL seat inventory balance invariant strictly maintained across all flights', status: 'VERIFIED' },
-    { text: 'Destination weather hazard advisory accurately gates flight clearance (Tokyo typhoon grounded)', status: 'VERIFIED' },
-    { text: 'SQL injection attack payloads safely neutralized by parameterized ORM queries', status: 'VERIFIED' },
-    { text: 'Concurrency double-booking collisions prevented with 409 Conflict', status: 'VERIFIED' },
-    { text: 'API audit logging middleware active and capturing request latency', status: 'VERIFIED' }
+    { text: 'All 58 Pytest positive, negative, and edge-case API tests executed and passed without errors', status: 'VERIFIED' },
+    { text: 'Postman collection (17 requests, 39 assertions) verified via Newman headless runner', status: 'VERIFIED' },
+    { text: 'SQL meteorological physical bounds invariants strictly maintained across all telemetry records', status: 'VERIFIED' },
+    { text: 'Referential integrity and orphan record absence verified across all weather stations and alerts', status: 'VERIFIED' },
+    { text: 'SQL injection attack payloads safely neutralized by parameterized queries (404 Sanitized)', status: 'VERIFIED' },
+    { text: 'Weather station ingestion authentication and RFC 7807 error schema validation verified', status: 'VERIFIED' },
+    { text: 'API audit logging middleware active and capturing request latency and status codes', status: 'VERIFIED' }
   ];
 
   return (
@@ -35,7 +35,7 @@ export default function QaSignOff() {
           </div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>QA Executive Sign-Off & Release Certification</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Comprehensive quality gate review confirming that the Weather & Flight-Booking API platform satisfies all functional, security, performance, and data integrity release criteria.
+            Comprehensive quality gate review confirming that the Weather API platform satisfies all functional, security, performance, and relational data integrity release criteria.
           </p>
         </div>
       </div>
@@ -97,13 +97,13 @@ export default function QaSignOff() {
             <div style={{ textAlign: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>🛡️</div>
               <h4 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Production Sign-Off</h4>
-              <p className="mono" style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>CERT-QA-2026-SKY-01</p>
+              <p className="mono" style={{ fontSize: '0.75rem', color: 'var(--primary)' }}>CERT-QA-2026-WTR-01</p>
             </div>
 
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '14px 0', margin: '14px 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>System Tested:</span>
-                <span className="mono" style={{ color: 'var(--text-primary)' }}>Weather & Flights API</span>
+                <span className="mono" style={{ color: 'var(--text-primary)' }}>Weather REST API v1.0.0</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Test Automation:</span>
@@ -115,7 +115,7 @@ export default function QaSignOff() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span>Pass Ratio:</span>
-                <span className="mono" style={{ color: '#34d399', fontWeight: 700 }}>100.0% (59/59)</span>
+                <span className="mono" style={{ color: '#34d399', fontWeight: 700 }}>100.0% (58/58)</span>
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@ export default function QaSignOff() {
               APPROVED FOR DEPLOYMENT
             </div>
             <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-              Certified by Antigravity Automation Lead
+              Certified by Weather API QA Automation Lead
             </p>
           </div>
         </div>

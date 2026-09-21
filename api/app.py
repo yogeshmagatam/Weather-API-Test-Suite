@@ -9,23 +9,24 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from api.config import settings
 from api.database import SessionLocal, engine, Base
 from api.models import ApiAuditLog
-from api.routers import weather, flights, bookings, system
+from api.routers import weather, system
 
 # Ensure database tables exist
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title=settings.PROJECT_NAME,
+    title="Weather REST API Test Suite",
     version=settings.VERSION,
     description="""
-## Weather & Flight-Booking Enterprise REST API
+## Enterprise Weather REST API & Telemetry Suite
 
-A mission-critical REST API platform interconnecting real-time meteorological observations with aviation flight scheduling, seat inventory management, and weather hazard dispatch advisories.
+A high-performance REST API platform serving real-time meteorological observations, multi-day forecast projections, severe hazard alerts, historical weather telemetry, air quality metrics, and weather station sensor ingestion.
 
 ### Key Capabilities:
-* **Meteorological Intelligence**: Real-time telemetry, 5-day projections, active hazard alerts, and weather station ingestion.
-* **Commercial Flight Booking**: Multi-hub routing, atomic seat reservations, concurrency safety, and full cancellation lifecycle.
-* **Aviation Weather Advisory**: Integrated flight safety routing evaluating destination weather alerts (CLEARED, CAUTION, DELAYED, GROUNDED).
+* **Meteorological Intelligence**: Real-time temperature, humidity, wind, barometric pressure, UV index, and Air Quality Index (AQI).
+* **Multi-Day Projections**: 1-7 day deterministic daily forecast modeling.
+* **Severe Hazard Alerts**: Real-time weather warnings (Typhoons, Heatwaves, Storms).
+* **Station Ingestion**: Authenticated telemetry ingestion via `X-API-Key`.
 * **Backend SQL Auditing**: Real-time request logging, latency SLAs, and relational data integrity.
     """,
     docs_url="/docs",
@@ -73,7 +74,6 @@ async def audit_logging_middleware(request: Request, call_next):
             db.commit()
             db.close()
         except Exception:
-            # Audit log failures must never break the main API request
             pass
 
     return response
@@ -128,11 +128,9 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 # Mount Routers
 # -------------------------------------------------------------
 app.include_router(weather.router, prefix=settings.API_V1_PREFIX)
-app.include_router(flights.router, prefix=settings.API_V1_PREFIX)
-app.include_router(bookings.router, prefix=settings.API_V1_PREFIX)
 app.include_router(system.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/health", tags=["System & Diagnostics"])
 def root_health():
     """Root level health check probe."""
-    return {"status": "UP", "service": settings.PROJECT_NAME, "version": settings.VERSION}
+    return {"status": "UP", "service": "Weather REST API Test Suite", "version": settings.VERSION}

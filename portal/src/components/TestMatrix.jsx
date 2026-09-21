@@ -7,7 +7,7 @@ export default function TestMatrix() {
   const [activeModalTest, setActiveModalTest] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const categories = ['All', 'Weather Positive', 'Weather Negative', 'Flight Positive', 'Flight Negative', 'SQL Invariants', 'Performance SLA'];
+  const categories = ['All', 'Weather Positive', 'Weather Negative', 'SQL Invariants', 'Performance SLA'];
 
   const filteredTests = TEST_CASES_DATA.filter(tc => {
     const matchesCat = selectedCategory === 'All' || tc.category.toLowerCase().includes(selectedCategory.toLowerCase());
@@ -31,7 +31,7 @@ export default function TestMatrix() {
         <div>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Pytest Automated Test Matrix</h2>
           <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-            Complete portfolio of 59 automated test specifications covering unit, integration, edge-case validation, and SQL invariants.
+            Complete portfolio of 58 automated test specifications covering unit, integration, edge-case validation, and SQL backend invariants.
           </p>
         </div>
 

@@ -4,124 +4,100 @@ from fastapi.testclient import TestClient
 
 @pytest.mark.sql_validation
 class TestSqlBackendValidation:
-    """Direct SQL database assertions validating backend data invariants, ACID consistency, and audit integrity."""
+    """Direct SQL database assertions validating meteorological data invariants, ACID persistence, and audit integrity."""
 
-    def test_sql_seat_inventory_invariant_after_api_booking(
-        self, client: TestClient, raw_db: sqlite3.Connection, sample_passenger_payload: dict
-    ):
-        """SQL Invariant: total_seats = available_seats + COUNT(active bookings).
+    def test_sql_sensor_physical_bounds_invariant(self, raw_db: sqlite3.Connection):
+        """SQL Invariant: Meteorological sensor physical bounds.
 
-        Validates that an API reservation atomically updates the database row and maintains invariant.
+        Temperature must be between -80°C and 65°C, humidity 0-100%, wind 0-450 km/h, pressure 850-1090 hPa.
         """
-        flight_id = 4  # EK-001 (DXB -> LHR)
-        cursor = raw_db.cursor()
-
-        # 1. Capture initial DB state
-        cursor.execute("SELECT total_seats, available_seats FROM flights WHERE id = ?", (flight_id,))
-        row = cursor.fetchone()
-        init_total, init_avail = row["total_seats"], row["available_seats"]
-
-        # 2. Dispatch API call
-        payload = sample_passenger_payload.copy()
-        payload["flight_id"] = flight_id
-        payload["seat_number"] = "21A"
-        api_res = client.post("/api/v1/bookings", json=payload)
-        assert api_res.status_code == 201
-        booking_ref = api_res.json()["booking_ref"]
-
-        # 3. Direct SQL Verification of DB state
-        cursor.execute("SELECT total_seats, available_seats FROM flights WHERE id = ?", (flight_id,))
-        updated_row = cursor.fetchone()
-        new_avail = updated_row["available_seats"]
-
-        assert new_avail == init_avail - 1, f"Expected available seats to decrement from {init_avail} to {init_avail - 1}"
-
-        # 4. Invariant Assertion across the entire flight record
-        cursor.execute("""
-            SELECT 
-                f.total_seats,
-                f.available_seats,
-                COUNT(b.id) AS active_confirmed
-            FROM flights f
-            LEFT JOIN bookings b ON f.id = b.flight_id AND b.status = 'CONFIRMED'
-            WHERE f.id = ?
-            GROUP BY f.id, f.total_seats, f.available_seats
-        """, (flight_id,))
-        inv_row = cursor.fetchone()
-        assert inv_row["total_seats"] == inv_row["available_seats"] + inv_row["active_confirmed"], (
-            f"Seat invariant violated! Total: {inv_row['total_seats']}, "
-            f"Available: {inv_row['available_seats']}, Active: {inv_row['active_confirmed']}"
-        )
-
-    def test_sql_seat_restoration_on_api_cancellation(
-        self, client: TestClient, raw_db: sqlite3.Connection, sample_passenger_payload: dict
-    ):
-        """SQL Invariant: Cancelling via API restores available seat in DB and sets cancelled_at timestamp."""
-        flight_id = 5  # SQ-308
-        cursor = raw_db.cursor()
-
-        cursor.execute("SELECT available_seats FROM flights WHERE id = ?", (flight_id,))
-        baseline_avail = cursor.fetchone()["available_seats"]
-
-        # Book seat
-        payload = sample_passenger_payload.copy()
-        payload["flight_id"] = flight_id
-        payload["seat_number"] = "33K"
-        res = client.post("/api/v1/bookings", json=payload)
-        booking_ref = res.json()["booking_ref"]
-
-        cursor.execute("SELECT available_seats FROM flights WHERE id = ?", (flight_id,))
-        assert cursor.fetchone()["available_seats"] == baseline_avail - 1
-
-        # Cancel reservation via API
-        cancel_res = client.delete(f"/api/v1/bookings/{booking_ref}")
-        assert cancel_res.status_code == 200
-
-        # Direct SQL Verification
-        cursor.execute("SELECT available_seats FROM flights WHERE id = ?", (flight_id,))
-        restored_avail = cursor.fetchone()["available_seats"]
-        assert restored_avail == baseline_avail, "Available seats count must be fully restored after cancellation"
-
-        cursor.execute("SELECT status, cancelled_at FROM bookings WHERE booking_ref = ?", (booking_ref,))
-        booking_db = cursor.fetchone()
-        assert booking_db["status"] == "CANCELLED"
-        assert booking_db["cancelled_at"] is not None
-
-    def test_sql_no_overbooked_flights_in_database(self, raw_db: sqlite3.Connection):
-        """SQL Invariant: No flight in the database should ever have available_seats < 0."""
-        cursor = raw_db.cursor()
-        cursor.execute("SELECT id, flight_number, available_seats FROM flights WHERE available_seats < 0")
-        overbooked = cursor.fetchall()
-        assert len(overbooked) == 0, f"Overbooked flights detected: {[dict(f) for f in overbooked]}"
-
-    def test_sql_no_duplicate_active_seats_in_database(self, raw_db: sqlite3.Connection):
-        """SQL Invariant: No two confirmed reservations may share the same flight_id and seat_number."""
         cursor = raw_db.cursor()
         cursor.execute("""
-            SELECT flight_id, seat_number, COUNT(*) as cnt
-            FROM bookings
-            WHERE status = 'CONFIRMED'
-            GROUP BY flight_id, seat_number
-            HAVING COUNT(*) > 1
+            SELECT id, temp_c, humidity, wind_kph, pressure_mb
+            FROM weather_records
+            WHERE (temp_c < -80.0 OR temp_c > 65.0)
+               OR (humidity < 0 OR humidity > 100)
+               OR (wind_kph < 0.0 OR wind_kph > 450.0)
+               OR (pressure_mb < 850.0 OR pressure_mb > 1090.0)
         """)
-        collisions = cursor.fetchall()
-        assert len(collisions) == 0, f"Duplicate active seat reservations detected: {[dict(c) for c in collisions]}"
+        anomalies = cursor.fetchall()
+        assert len(anomalies) == 0, f"Sensor physical boundary violations detected: {[dict(a) for a in anomalies]}"
 
     def test_sql_referential_integrity_no_orphaned_records(self, raw_db: sqlite3.Connection):
-        """SQL Invariant: All bookings must reference a valid flight and passenger."""
+        """SQL Invariant: Referential Integrity.
+
+        All weather_records and weather_alerts must link to an existing city station.
+        """
         cursor = raw_db.cursor()
         cursor.execute("""
-            SELECT b.id, b.booking_ref
-            FROM bookings b
-            LEFT JOIN flights f ON b.flight_id = f.id
-            LEFT JOIN passengers p ON b.passenger_id = p.id
-            WHERE f.id IS NULL OR p.id IS NULL
+            SELECT w.id FROM weather_records w
+            LEFT JOIN cities c ON w.city_id = c.id
+            WHERE c.id IS NULL
         """)
-        orphans = cursor.fetchall()
-        assert len(orphans) == 0, f"Orphaned bookings found in database: {[dict(o) for o in orphans]}"
+        orphaned_records = cursor.fetchall()
+        assert len(orphaned_records) == 0, f"Orphaned weather records found: {len(orphaned_records)}"
+
+        cursor.execute("""
+            SELECT a.id FROM weather_alerts a
+            LEFT JOIN cities c ON a.city_id = c.id
+            WHERE c.id IS NULL
+        """)
+        orphaned_alerts = cursor.fetchall()
+        assert len(orphaned_alerts) == 0, f"Orphaned weather alerts found: {len(orphaned_alerts)}"
+
+    def test_sql_station_observation_ingestion_persistence(
+        self, client: TestClient, raw_db: sqlite3.Connection, valid_api_headers: dict, sample_weather_observation: dict
+    ):
+        """SQL Invariant: API ingestion atomically creates database row with correct foreign keys."""
+        cursor = raw_db.cursor()
+
+        # Ingest via API
+        response = client.post(
+            "/api/v1/weather/observations",
+            json=sample_weather_observation,
+            headers=valid_api_headers
+        )
+        assert response.status_code == 201
+        record_id = response.json()["record_id"]
+
+        # Verify directly in SQLite
+        cursor.execute("""
+            SELECT w.id, w.temp_c, w.humidity, w.wind_kph, c.name AS city_name
+            FROM weather_records w
+            JOIN cities c ON w.city_id = c.id
+            WHERE w.id = ?
+        """, (record_id,))
+        row = cursor.fetchone()
+        assert row is not None, f"Observation record {record_id} was not persisted in database"
+        assert row["city_name"] == sample_weather_observation["city_name"]
+        assert abs(row["temp_c"] - sample_weather_observation["temp_c"]) < 0.01
+        assert row["humidity"] == sample_weather_observation["humidity"]
+
+    def test_sql_air_quality_index_bounds(self, raw_db: sqlite3.Connection):
+        """SQL Invariant: Air Quality Index (AQI) values must be between 1 and 500."""
+        cursor = raw_db.cursor()
+        cursor.execute("""
+            SELECT id, air_quality_index
+            FROM weather_records
+            WHERE air_quality_index IS NOT NULL
+              AND (air_quality_index < 1 OR air_quality_index > 500)
+        """)
+        invalid_aqi = cursor.fetchall()
+        assert len(invalid_aqi) == 0, f"Out of bounds AQI values found: {[dict(a) for a in invalid_aqi]}"
+
+    def test_sql_active_alerts_expiration_integrity(self, raw_db: sqlite3.Connection):
+        """SQL Invariant: Active alerts must have expiration timestamp strictly in the future."""
+        cursor = raw_db.cursor()
+        cursor.execute("""
+            SELECT id, event, expires_at
+            FROM weather_alerts
+            WHERE is_active = 1 AND expires_at < datetime('now')
+        """)
+        expired_active = cursor.fetchall()
+        assert len(expired_active) == 0, f"Expired alerts still marked active: {[dict(a) for a in expired_active]}"
 
     def test_sql_audit_log_captures_api_traffic(self, client: TestClient, raw_db: sqlite3.Connection):
-        """SQL Invariant: Incoming API calls are captured in the api_audit_log with status and latency."""
+        """SQL Invariant: Incoming API calls are recorded in api_audit_log with status code and latency."""
         cursor = raw_db.cursor()
 
         # Dispatch test call
@@ -140,23 +116,28 @@ class TestSqlBackendValidation:
         assert log["status_code"] == 200
         assert log["response_time_ms"] >= 0.0
 
-    def test_sql_revenue_reconciliation(self, raw_db: sqlite3.Connection):
-        """SQL Invariant: Sum of confirmed booking total_price must reconcile with base_price * confirmed count."""
+    def test_sql_weather_statistical_aggregation_consistency(
+        self, client: TestClient, raw_db: sqlite3.Connection
+    ):
+        """SQL Invariant: API statistical aggregates match direct database SQL aggregate calculations."""
         cursor = raw_db.cursor()
+
+        # Fetch SQL aggregation directly
         cursor.execute("""
             SELECT 
-                f.flight_number,
-                f.base_price,
-                COUNT(b.id) AS confirmed_count,
-                COALESCE(SUM(b.total_price), 0.0) AS actual_revenue,
-                (COUNT(b.id) * f.base_price) AS expected_revenue
-            FROM flights f
-            LEFT JOIN bookings b ON f.id = b.flight_id AND b.status = 'CONFIRMED'
-            GROUP BY f.id, f.flight_number, f.base_price
+                ROUND(MIN(temp_c), 1) as min_t,
+                ROUND(MAX(temp_c), 1) as max_t,
+                ROUND(AVG(temp_c), 1) as avg_t
+            FROM weather_records
+            WHERE city_id = 1
         """)
-        rows = cursor.fetchall()
-        for r in rows:
-            assert abs(r["actual_revenue"] - r["expected_revenue"]) < 0.01, (
-                f"Revenue mismatch for flight {r['flight_number']}: "
-                f"Actual {r['actual_revenue']} != Expected {r['expected_revenue']}"
-            )
+        sql_stats = cursor.fetchone()
+
+        # Fetch API stats
+        api_res = client.get("/api/v1/weather/stats?city=London")
+        assert api_res.status_code == 200
+        api_stats = api_res.json()
+
+        assert abs(api_stats["min_temp_c"] - sql_stats["min_t"]) < 0.2
+        assert abs(api_stats["max_temp_c"] - sql_stats["max_t"]) < 0.2
+        assert abs(api_stats["avg_temp_c"] - sql_stats["avg_t"]) < 0.2

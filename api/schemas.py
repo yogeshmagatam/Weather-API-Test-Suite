@@ -1,8 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
-from typing import Optional, List, Any, Dict
-from pydantic import BaseModel, Field, EmailStr, field_validator
-import re
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
 
 # ==========================================
 # Common & Standard Error Schemas (RFC 7807)
@@ -19,7 +18,7 @@ class ErrorResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 # ==========================================
-# Weather Schemas
+# Weather Request & Response Schemas
 # ==========================================
 class WeatherObservationCreate(BaseModel):
     city_name: str = Field(..., min_length=2, max_length=100, example="London")
@@ -89,112 +88,56 @@ class WeatherAlertResponse(BaseModel):
     expires_at: datetime
     is_active: bool
 
-# ==========================================
-# Flight & Airport Schemas
-# ==========================================
-class AirportResponse(BaseModel):
-    code: str
+class HistoricalWeatherRecord(BaseModel):
+    id: int
+    temp_c: float
+    temp_f: float
+    humidity: int
+    wind_kph: float
+    pressure_mb: float
+    condition: str
+    air_quality_index: Optional[int]
+    recorded_at: datetime
+
+class HistoricalWeatherResponse(BaseModel):
+    location: LocationInfo
+    total_records: int
+    records: List[HistoricalWeatherRecord]
+
+class AirQualityResponse(BaseModel):
+    location: LocationInfo
+    aqi: int
+    category: str
+    health_advisory: str
+    recorded_at: datetime
+
+class CityCreateRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100, example="Reykjavik")
+    country: str = Field(..., min_length=2, max_length=100, example="Iceland")
+    country_code: str = Field(..., min_length=2, max_length=3, example="IS")
+    latitude: float = Field(..., ge=-90.0, le=90.0, example=64.1466)
+    longitude: float = Field(..., ge=-180.0, le=180.0, example=-21.9426)
+    timezone: str = Field(..., min_length=2, max_length=50, example="Atlantic/Reykjavik")
+
+class CityResponse(BaseModel):
+    id: int
     name: str
-    city: str
     country: str
+    country_code: str
     latitude: float
     longitude: float
     timezone: str
+    created_at: datetime
 
-class FlightResponse(BaseModel):
-    id: int
-    flight_number: str
-    airline: str
-    origin_airport: str
-    destination_airport: str
-    departure_time: datetime
-    arrival_time: datetime
-    base_price: float
-    total_seats: int
-    available_seats: int
-    status: str
-
-class FlightSearchResponse(BaseModel):
-    total_matches: int
-    origin: str
-    destination: str
-    date: Optional[str]
-    flights: List[FlightResponse]
-
-class WeatherAdvisoryResponse(BaseModel):
-    flight_id: int
-    flight_number: str
-    airline: str
-    origin: str
-    destination: str
-    destination_city: str
-    advisory_status: str  # CLEARED, CAUTION, DELAYED, GROUNDED
-    dispatch_code: str
-    current_destination_temp_c: float
-    condition: str
-    active_alerts_count: int
-    alerts: List[Dict[str, Any]]
-    recommendation: str
-
-# ==========================================
-# Booking & Passenger Schemas
-# ==========================================
-class PassengerCreate(BaseModel):
-    first_name: str = Field(..., min_length=2, max_length=50, example="Alex")
-    last_name: str = Field(..., min_length=2, max_length=50, example="Morgan")
-    email: EmailStr = Field(..., example="alex.morgan@testqa.com")
-    passport_number: str = Field(..., min_length=5, max_length=20, example="GB882910471")
-    phone: Optional[str] = Field(None, example="+44 7700 900077")
-
-    @field_validator("passport_number")
-    @classmethod
-    def validate_passport(cls, v: str) -> str:
-        if not re.match(r"^[A-Z0-9]{5,20}$", v.upper()):
-            raise ValueError("Passport number must contain only alphanumeric characters (5-20 characters)")
-        return v.upper()
-
-class BookingCreateRequest(BaseModel):
-    flight_id: int = Field(..., gt=0, example=1)
-    seat_number: str = Field(..., example="14C")
-    passenger: PassengerCreate
-
-    @field_validator("seat_number")
-    @classmethod
-    def validate_seat(cls, v: str) -> str:
-        clean = v.strip().upper()
-        if not re.match(r"^[0-9]{1,2}[A-K]$", clean):
-            raise ValueError("Seat number must match format e.g. 14C, 02A, 31F")
-        return clean
-
-class BookingResponse(BaseModel):
-    booking_ref: str
-    flight: FlightResponse
-    passenger_name: str
-    passenger_email: str
-    passport_number: str
-    seat_number: str
-    status: str
-    total_price: float
-    booked_at: datetime
-    cancelled_at: Optional[datetime] = None
-
-class SeatUpdateRequest(BaseModel):
-    new_seat_number: str = Field(..., example="16F")
-
-    @field_validator("new_seat_number")
-    @classmethod
-    def validate_seat(cls, v: str) -> str:
-        clean = v.strip().upper()
-        if not re.match(r"^[0-9]{1,2}[A-K]$", clean):
-            raise ValueError("Seat number must match format e.g. 14C, 02A, 31F")
-        return clean
-
-class BookingCancelResponse(BaseModel):
-    message: str
-    booking_ref: str
-    status: str
-    cancelled_at: datetime
-    refund_amount: float
+class WeatherStatsResponse(BaseModel):
+    city: str
+    country: str
+    min_temp_c: float
+    max_temp_c: float
+    avg_temp_c: float
+    avg_humidity_pct: float
+    avg_wind_kph: float
+    total_observations_analyzed: int
 
 # ==========================================
 # System & Monitoring Schemas
@@ -209,7 +152,5 @@ class SystemMetricsResponse(BaseModel):
     total_api_requests: int
     avg_response_time_ms: float
     total_cities_monitored: int
-    total_flights_active: int
-    total_active_bookings: int
     database_size_bytes: int
     uptime_seconds: float

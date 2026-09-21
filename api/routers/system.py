@@ -1,13 +1,13 @@
 import time
 import os
 from datetime import datetime
-from typing import Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, status
+from typing import Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Body, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from api.database import get_db, get_raw_sqlite_connection, Base, engine
+from sqlalchemy import text, func
+from api.database import get_db, get_raw_sqlite_connection
 from api.config import settings
-from api.models import City, Flight, Booking, ApiAuditLog
+from api.models import City, WeatherRecord, WeatherAlert, ApiAuditLog
 from api.schemas import HealthResponse, SystemMetricsResponse
 
 router = APIRouter(prefix="/system", tags=["System & Diagnostics"])
@@ -35,11 +35,9 @@ def health_check(db: Session = Depends(get_db)):
 def get_system_metrics(db: Session = Depends(get_db)):
     """Telemetry metrics covering API usage, database scale, and response latencies."""
     total_reqs = db.query(ApiAuditLog).count()
-    avg_latency = db.query(func_avg(ApiAuditLog.response_time_ms)).scalar() or 0.0
+    avg_latency = db.query(func.avg(ApiAuditLog.response_time_ms)).scalar() or 0.0
 
     total_cities = db.query(City).count()
-    total_flights = db.query(Flight).count()
-    total_active_bookings = db.query(Booking).filter(Booking.status == "CONFIRMED").count()
 
     db_size = 0
     if settings.DB_PATH.exists():
@@ -51,19 +49,13 @@ def get_system_metrics(db: Session = Depends(get_db)):
         total_api_requests=total_reqs,
         avg_response_time_ms=round(float(avg_latency), 2),
         total_cities_monitored=total_cities,
-        total_flights_active=total_flights,
-        total_active_bookings=total_active_bookings,
         database_size_bytes=db_size,
         uptime_seconds=uptime
     )
 
-def func_avg(col):
-    from sqlalchemy import func
-    return func.avg(col)
-
 @router.post("/execute-sql", response_model=Dict[str, Any])
 def execute_readonly_sql(
-    payload: Dict[str, str] = Body(..., example={"query": "SELECT * FROM flights LIMIT 5"})
+    payload: Dict[str, str] = Body(..., example={"query": "SELECT * FROM cities LIMIT 5"})
 ):
     """Execute read-only SQL validation queries for QA auditing and data checks."""
     query_str = payload.get("query", "").strip()
@@ -105,6 +97,6 @@ def reset_database():
     try:
         from scripts.init_db import initialize_database
         initialize_database()
-        return {"status": "SUCCESS", "message": "Database reset to clean baseline seed data"}
+        return {"status": "SUCCESS", "message": "Weather database reset to clean baseline seed data"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to reset database: {str(e)}")

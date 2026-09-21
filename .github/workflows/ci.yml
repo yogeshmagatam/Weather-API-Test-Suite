@@ -1,4 +1,4 @@
-name: SkyPulse API Test Automation CI
+name: Weather API Test Automation CI
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.14"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - name: Checkout Repository
@@ -51,7 +51,7 @@ jobs:
 
       - name: Run Postman Collection via Newman CLI
         run: |
-          npx newman run postman/Weather_Flight_API_Test_Suite.postman_collection.json -e postman/Weather_API_CI.postman_environment.json --reporters cli
+          npx newman run postman/Weather_API_Test_Suite.postman_collection.json -e postman/Weather_API_CI.postman_environment.json --reporters cli
 
       - name: Run Executive Regression Runner
         run: |

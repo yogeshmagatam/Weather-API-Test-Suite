@@ -1,29 +1,28 @@
 #!/usr/bin/env python3
-"""Database Initialization & Seed Script.
+"""Database Initialization & Seed Script for Weather API Test Suite.
 
 Creates SQLite database tables using sql/schema.sql and seeds realistic baseline
-records using sql/seed.sql idempotently.
+meteorological records using sql/seed.sql idempotently.
 """
 
 import sqlite3
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "weather_flight.db"
+DB_PATH = BASE_DIR / "weather_api.db"
 SCHEMA_PATH = BASE_DIR / "sql" / "schema.sql"
 SEED_PATH = BASE_DIR / "sql" / "seed.sql"
 
 def initialize_database():
-    print(f"[*] Initializing database at: {DB_PATH}")
+    print(f"[*] Initializing weather database at: {DB_PATH}")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("PRAGMA foreign_keys = OFF;")
 
-    # Drop existing tables cleanly if resetting
+    # Drop existing tables cleanly
     tables = [
-        "api_audit_log", "bookings", "passengers", "flights", 
-        "airports", "weather_alerts", "weather_records", "cities"
+        "api_audit_log", "weather_alerts", "weather_records", "cities"
     ]
     for table in tables:
         cursor.execute(f"DROP TABLE IF EXISTS {table};")
@@ -31,32 +30,32 @@ def initialize_database():
     cursor.execute("PRAGMA foreign_keys = ON;")
 
     # Execute Schema
-    print(f"[*] Executing schema DDL from: {SCHEMA_PATH.name}")
+    print(f"[*] Executing weather schema DDL from: {SCHEMA_PATH.name}")
     with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
         schema_sql = f.read()
         cursor.executescript(schema_sql)
-    print(f"[+] Schema created successfully.")
+    print(f"[+] Weather schema created successfully.")
 
     # Execute Seed
-    print(f"[*] Seeding data from: {SEED_PATH.name}")
+    print(f"[*] Seeding meteorological telemetry from: {SEED_PATH.name}")
     with open(SEED_PATH, "r", encoding="utf-8") as f:
         seed_sql = f.read()
         cursor.executescript(seed_sql)
-    print(f"[+] Seed data inserted successfully.")
+    print(f"[+] Meteorological seed data inserted successfully.")
 
-    # Quick Verification
+    # Verification
     cursor.execute("SELECT COUNT(*) FROM cities;")
     cities_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM flights;")
-    flights_count = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM bookings WHERE status = 'CONFIRMED';")
-    bookings_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM weather_records;")
+    records_count = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM weather_alerts WHERE is_active = 1;")
+    alerts_count = cursor.fetchone()[0]
 
-    print(f"[+] Verification: {cities_count} cities, {flights_count} flights, {bookings_count} confirmed bookings.")
+    print(f"[+] Verification: {cities_count} weather stations, {records_count} telemetry records, {alerts_count} active hazard alerts.")
 
     conn.commit()
     conn.close()
-    print("[SUCCESS] Database initialization complete!\n")
+    print("[SUCCESS] Weather database initialization complete!\n")
 
 if __name__ == "__main__":
     initialize_database()

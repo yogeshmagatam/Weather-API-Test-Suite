@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 @pytest.mark.weather
 @pytest.mark.negative
 class TestWeatherNegative:
-    """Negative and boundary test scenarios for Weather API error handling, validation, and security."""
+    """Negative, boundary, and security test scenarios for Weather API error handling and input validation."""
 
     def test_current_weather_missing_city_parameter(self, client: TestClient):
         """Verify requesting current weather without mandatory 'city' parameter returns 422."""
@@ -58,6 +58,24 @@ class TestWeatherNegative:
         assert response.status_code == 404
         data = response.json()
         assert data["error"] == "CITY_NOT_FOUND"
+
+    def test_historical_nonexistent_city(self, client: TestClient):
+        """Verify historical query for non-existent city returns 404 Not Found."""
+        response = client.get("/api/v1/weather/historical?city=Metropolis")
+        assert response.status_code == 404
+        assert response.json()["error"] == "CITY_NOT_FOUND"
+
+    def test_air_quality_nonexistent_city(self, client: TestClient):
+        """Verify AQI lookup for unregistered city returns 404 Not Found."""
+        response = client.get("/api/v1/weather/air-quality?city=UnregisteredAQICity")
+        assert response.status_code == 404
+        assert response.json()["error"] == "CITY_NOT_FOUND"
+
+    def test_stats_nonexistent_city(self, client: TestClient):
+        """Verify statistical metrics for unknown city returns 404 Not Found."""
+        response = client.get("/api/v1/weather/stats?city=UnknownStationCity")
+        assert response.status_code == 404
+        assert response.json()["error"] == "CITY_NOT_FOUND"
 
     def test_observation_missing_api_key(self, client: TestClient, sample_weather_observation: dict):
         """Verify observation ingestion without X-API-Key header returns 401 Unauthorized."""
@@ -115,6 +133,23 @@ class TestWeatherNegative:
         response = client.post("/api/v1/weather/observations", json=payload, headers=valid_api_headers)
         assert response.status_code == 422
 
+    def test_observation_negative_wind_speed(self, client: TestClient, valid_api_headers: dict):
+        """Verify boundary condition: negative wind speed is rejected with 422."""
+        payload = {
+            "city_name": "London",
+            "temp_c": 18.0,
+            "humidity": 50,
+            "wind_kph": -15.0,  # Invalid
+            "wind_direction": "N",
+            "pressure_mb": 1013.0,
+            "visibility_km": 10.0,
+            "condition": "Cloudy",
+            "condition_code": 1003,
+            "uv_index": 2.0
+        }
+        response = client.post("/api/v1/weather/observations", json=payload, headers=valid_api_headers)
+        assert response.status_code == 422
+
     def test_observation_unregistered_station_city(
         self, client: TestClient, valid_api_headers: dict, sample_weather_observation: dict
     ):
@@ -125,6 +160,20 @@ class TestWeatherNegative:
         assert response.status_code == 404
         data = response.json()
         assert data["error"] == "UNKNOWN_STATION"
+
+    def test_register_city_duplicate_conflict(self, client: TestClient):
+        """Verify registering an already existing station city returns 409 Conflict."""
+        duplicate_payload = {
+            "name": "London",  # Already exists in seed
+            "country": "United Kingdom",
+            "country_code": "GB",
+            "latitude": 51.5074,
+            "longitude": -0.1278,
+            "timezone": "Europe/London"
+        }
+        response = client.post("/api/v1/weather/cities", json=duplicate_payload)
+        assert response.status_code == 409
+        assert response.json()["error"] == "CITY_ALREADY_EXISTS"
 
     @pytest.mark.security
     @pytest.mark.parametrize("sqli_payload", [

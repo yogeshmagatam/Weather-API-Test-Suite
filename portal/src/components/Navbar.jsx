@@ -19,26 +19,26 @@ export default function Navbar({ activeTab, setActiveTab, isBackendLive }) {
             width: '42px',
             height: '42px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #38bdf8 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '22px',
             boxShadow: '0 4px 14px rgba(56, 189, 248, 0.4)'
           }}>
-            ✈
+            🌤️
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(90deg, #ffffff, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                SkyPulse QA
+                WeatherPulse QA
               </h1>
               <span className="mono" style={{ fontSize: '0.7rem', padding: '2px 6px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
                 v1.0.0
               </span>
             </div>
             <p style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-              Weather & Flight-Booking REST API Automation Suite
+              Weather REST API Test Automation & QA Operations Suite
             </p>
           </div>
         </div>

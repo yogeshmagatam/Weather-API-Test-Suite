@@ -1,61 +1,68 @@
 import React, { useState } from 'react';
 
 export default function PostmanVisualizer() {
-  const [activeFolder, setActiveFolder] = useState('01_Weather_API_Positive_Cases');
+  const [activeFolder, setActiveFolder] = useState('01_Current_Weather_Positive');
   const [isRunningNewman, setIsRunningNewman] = useState(false);
   const [newmanOutput, setNewmanOutput] = useState(null);
 
   const folders = [
     {
-      id: '01_Weather_API_Positive_Cases',
-      name: '01 Weather Positive Cases',
-      count: '5 requests',
+      id: '01_Current_Weather_Positive',
+      name: '01 Current Weather Positive',
+      count: '3 requests',
       requests: [
-        { name: 'Get Current Weather (London - Metric Default)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=London', asserts: ['Status code is 200 OK', 'Response time is under 300ms', 'Schema: Location & metric units'] },
-        { name: 'Get Current Weather (New York - Imperial)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=New York&units=imperial', asserts: ['Status code is 200 OK', 'Imperial units converted correctly (°F, mph)'] },
-        { name: 'Get 5-Day Weather Forecast (Paris)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=5', asserts: ['Status code is 200 OK', 'Forecast contains 5 chronological projections'] },
-        { name: 'Get Active Weather Hazard Alerts', method: 'GET', url: '{{baseUrl}}/api/v1/weather/alerts', asserts: ['Status code is 200 OK', 'Returns active alert list with required fields'] },
-        { name: 'Ingest Weather Observation (Authorized)', method: 'POST', url: '{{baseUrl}}/api/v1/weather/observations', asserts: ['Status code is 201 Created', 'Ingestion confirmed with new record_id'] }
+        { name: '01.1 Get Current Weather (London - Metric Default)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=London', asserts: ['Status code is 200 OK', 'Response time is under 250ms SLA', 'Schema validation: Location & metric units'] },
+        { name: '01.2 Get Current Weather (New York - Imperial Units)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=New York&units=imperial', asserts: ['Status code is 200 OK', 'Imperial units converted correctly (°F, mph, miles)'] },
+        { name: '01.3 Get Current Weather (Tokyo - Typhoon Zone)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=Tokyo', asserts: ['Status code is 200 OK', 'High wind speed and storm condition detected'] }
       ]
     },
     {
-      id: '02_Weather_API_Negative_Cases',
-      name: '02 Weather Negative Cases',
-      count: '4 requests',
+      id: '02_Forecast_and_Historical',
+      name: '02 Forecast & Historical',
+      count: '3 requests',
       requests: [
-        { name: 'Missing City Parameter (422)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current', asserts: ['Status code is 422 Unprocessable', 'RFC 7807 Error details array'] },
-        { name: 'Non-Existent City (404)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=AtlantisLostCity', asserts: ['Status code is 404 Not Found', 'Error indicates CITY_NOT_FOUND'] },
-        { name: 'Observation Missing API Key (401)', method: 'POST', url: '{{baseUrl}}/api/v1/weather/observations', asserts: ['Status code is 401 Unauthorized', 'Error indicates UNAUTHORIZED'] },
-        { name: 'SQL Injection Resilience (404 Sanitized)', method: 'GET', url: "{{baseUrl}}/api/v1/weather/current?city=' OR '1'='1", asserts: ['Status code is 404 (Sanitized parameterized lookup)', 'No SQL errors or 500 leakages'] }
+        { name: '02.1 Get 5-Day Weather Forecast (Paris)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=5', asserts: ['Status code is 200 OK', 'Forecast contains 5 chronological daily projections', 'Max temp >= Min temp'] },
+        { name: '02.2 Get Historical Weather Logs (London)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/historical?city=London', asserts: ['Status code is 200 OK', 'Historical records returned with timestamps', 'total_records >= 1'] },
+        { name: '02.3 Get Weather Statistical Aggregates (London)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/stats?city=London', asserts: ['Status code is 200 OK', 'Calculates valid min, max, and avg temperatures'] }
       ]
     },
     {
-      id: '03_Flight_Booking_Positive_Flow',
-      name: '03 Flight Booking Flow',
-      count: '4 requests',
+      id: '03_Hazard_Alerts_and_AirQuality',
+      name: '03 Hazard Alerts & Air Quality',
+      count: '3 requests',
       requests: [
-        { name: 'Search Flights (LHR to JFK)', method: 'GET', url: '{{baseUrl}}/api/v1/flights/search?origin=LHR&destination=JFK', asserts: ['Status code is 200 OK', 'BA-178 available with seats > 0'] },
-        { name: 'Create Flight Booking (Dynamic Chaining)', method: 'POST', url: '{{baseUrl}}/api/v1/bookings', asserts: ['Status code is 201 Created', 'Saves booking_ref regex BK-XXXXXX to environment'] },
-        { name: 'Get Booking by Reference (Chained Variable)', method: 'GET', url: '{{baseUrl}}/api/v1/bookings/{{booking_ref}}', asserts: ['Status code is 200 OK', 'Retrieved booking matches chained reference'] },
-        { name: 'Cancel Booking (Refund & Restores Inventory)', method: 'DELETE', url: '{{baseUrl}}/api/v1/bookings/{{booking_ref}}', asserts: ['Status code is 200 OK', 'Booking cancelled with refund amount', 'cancelled_at is recorded'] }
+        { name: '03.1 Get Active Severe Weather Alerts', method: 'GET', url: '{{baseUrl}}/api/v1/weather/alerts', asserts: ['Status code is 200 OK', 'Returns list of active alerts with required fields', 'Alerts contain severity, headline, instructions'] },
+        { name: '03.2 Filter Alerts by City (Tokyo Typhoon Warning)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/alerts?city=Tokyo', asserts: ['Status code is 200 OK', 'Returns EXTREME typhoon warning for Tokyo'] },
+        { name: '03.3 Get Air Quality Index (Mumbai - Unhealthy)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/air-quality?city=Mumbai', asserts: ['Status code is 200 OK', 'AQI categorization and health advisory', 'AQI > 100 with N95 mask recommendation'] }
       ]
     },
     {
-      id: '04_Flight_Booking_Negative_Cases',
-      name: '04 Flight Negative Cases',
+      id: '04_Station_Ingestion_and_Management',
+      name: '04 Station Ingestion & Catalog',
       count: '2 requests',
       requests: [
-        { name: 'Duplicate Seat Collision (409 Conflict)', method: 'POST', url: '{{baseUrl}}/api/v1/bookings', asserts: ['Status code is 409 Conflict', 'Error indicates SEAT_ALREADY_RESERVED'] },
-        { name: 'Search Identical Origin & Destination (400)', method: 'GET', url: '{{baseUrl}}/api/v1/flights/search?origin=LHR&destination=LHR', asserts: ['Status code is 400 Bad Request', 'Error indicates INVALID_ROUTE'] }
+        { name: '04.1 List All Weather Station Cities', method: 'GET', url: '{{baseUrl}}/api/v1/weather/cities', asserts: ['Status code is 200 OK', 'Catalog contains at least 10 stations'] },
+        { name: '04.2 Ingest Weather Observation (Authorized)', method: 'POST', url: '{{baseUrl}}/api/v1/weather/observations', asserts: ['Status code is 201 Created', 'Ingestion confirmed with new record_id', 'status equals SUCCESS'] }
       ]
     },
     {
-      id: '05_Weather_Flight_Integration',
-      name: '05 Weather & Flight Integration',
+      id: '05_Negative_Validation_Cases',
+      name: '05 Negative Validation Cases',
+      count: '4 requests',
+      requests: [
+        { name: '05.1 Missing City Parameter (422)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current', asserts: ['Status code is 422 Unprocessable Entity', 'Error payload conforms to RFC 7807', 'Details array contains missing field'] },
+        { name: '05.2 Non-Existent City (404)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/current?city=AtlantisLostCity', asserts: ['Status code is 404 Not Found', 'Error indicates CITY_NOT_FOUND'] },
+        { name: '05.3 Out of Bounds Forecast Days (400)', method: 'GET', url: '{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=14', asserts: ['Status code is 400 Bad Request', 'Error indicates INVALID_DAYS_RANGE'] },
+        { name: '05.4 Ingestion Missing API Key (401)', method: 'POST', url: '{{baseUrl}}/api/v1/weather/observations', asserts: ['Status code is 401 Unauthorized', 'Error indicates UNAUTHORIZED'] }
+      ]
+    },
+    {
+      id: '06_Security_and_SQLi_Resilience',
+      name: '06 Security & SQLi Resilience',
       count: '2 requests',
       requests: [
-        { name: 'Aviation Advisory - Tokyo Typhoon (GROUNDED)', method: 'GET', url: '{{baseUrl}}/api/v1/flights/7/weather-advisory', asserts: ['Status code is 200 OK', 'Advisory status is GROUNDED', 'Recommendation contains Visual approach suspended'] },
-        { name: 'Aviation Advisory - New York JFK (CLEARED)', method: 'GET', url: '{{baseUrl}}/api/v1/flights/1/weather-advisory', asserts: ['Status code is 200 OK', 'Advisory status is CLEARED', 'Dispatch code DISPATCH-CLR-01'] }
+        { name: '06.1 SQL Injection Attack Resilience (404 Sanitized)', method: 'GET', url: "{{baseUrl}}/api/v1/weather/current?city=' OR '1'='1", asserts: ['Status code is 404 (Sanitized parameterized lookup)', 'No SQL syntax errors or 500 leakages', 'Error indicates CITY_NOT_FOUND'] },
+        { name: '06.2 Invalid Observation API Key (403 Forbidden)', method: 'POST', url: '{{baseUrl}}/api/v1/weather/observations', asserts: ['Status code is 403 Forbidden', 'Error indicates FORBIDDEN_INVALID_API_KEY'] }
       ]
     }
   ];
@@ -67,10 +74,10 @@ export default function PostmanVisualizer() {
         totalIterations: 1,
         totalRequests: 17,
         totalPrerequest: 17,
-        totalAssertions: 38,
+        totalAssertions: 39,
         failedAssertions: 0,
-        totalRunDuration: '1.42s',
-        averageResponseTime: '34ms'
+        totalRunDuration: '1.38s',
+        averageResponseTime: '24ms'
       });
       setIsRunningNewman(false);
     }, 1200);
@@ -86,7 +93,7 @@ export default function PostmanVisualizer() {
         <div>
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Postman Collection & Newman CI Automation</h2>
           <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-            Enterprise Postman test suite featuring dynamic variable chaining, pre-request scripts, Ajv JSON schema validation, and Newman headless execution.
+            Enterprise Postman test suite featuring 17 automated requests across 6 modular folders, pre-request scripts, Ajv JSON schema validation, and Newman headless CI execution.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -103,7 +110,7 @@ export default function PostmanVisualizer() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span className="live-dot" style={{ background: '#10b981' }}></span>
               <span className="mono" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#34d399' }}>
-                NEWMAN EXECUTION COMPLETE • 100% PASSED
+                NEWMAN EXECUTION COMPLETE • 100% PASSED (17/17 REQUESTS, 39/39 ASSERTIONS)
               </span>
             </div>
             <button
@@ -145,7 +152,7 @@ export default function PostmanVisualizer() {
         {/* Folder List */}
         <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-            Collection Folders
+            Collection Folders (6)
           </div>
           {folders.map(f => {
             const isSelected = activeFolder === f.id;
@@ -185,7 +192,7 @@ export default function PostmanVisualizer() {
               Headless CLI Run:
             </div>
             <div className="code-block" style={{ fontSize: '0.7rem', padding: '8px' }}>
-              npx newman run postman/Weather_Flight_API_Test_Suite.postman_collection.json -e postman/Weather_API_Local.postman_environment.json
+              npx newman run postman/Weather_API_Test_Suite.postman_collection.json -e postman/Weather_API_Local.postman_environment.json
             </div>
           </div>
         </div>

@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_DB_PATH = BASE_DIR / "weather_flight.db"
+DEFAULT_DB_PATH = BASE_DIR / "weather_api.db"
 
 class Settings:
-    PROJECT_NAME: str = "Weather & Flight-Booking API Test Suite"
+    PROJECT_NAME: str = "Weather API Test Suite"
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
     

@@ -39,7 +39,7 @@ export default function App() {
 
       <footer style={{ padding: '20px 24px', textAlign: 'center', borderTop: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
         <p>
-          SkyPulse Weather & Flight-Booking API Test Automation Suite • Built with Python, Pytest, Requests, Postman, SQLite, and React.
+          WeatherPulse Weather REST API Test Automation Suite • Built with Python, Pytest, Requests, Postman, SQLite, and React.
         </p>
       </footer>
     </div>

@@ -1,1 +1,1 @@
-"""Automated Test Suite for Weather & Flight-Booking API."""
+"""Automated Test Suite for Weather API."""

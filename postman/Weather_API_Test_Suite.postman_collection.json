@@ -1,0 +1,599 @@
+{
+  "info": {
+    "_postman_id": "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
+    "name": "Weather API Test Suite",
+    "description": "Comprehensive automated REST API test suite covering Current Weather Telemetry, Forecast Projections, Hazard Alerts, Air Quality Index (AQI), Weather Statistics, Station Ingestion, and SQL Injection Security Resilience.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01_Current_Weather_Positive",
+      "item": [
+        {
+          "name": "01.1 Get Current Weather (London - Metric Default)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response time is under 250ms SLA', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(250);",
+                  "});",
+                  "pm.test('Schema validation: Location & metric units', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('London');",
+                  "    pm.expect(json.unit).to.eql('°C');",
+                  "    pm.expect(json.wind_unit).to.eql('km/h');",
+                  "    pm.expect(json.visibility_unit).to.eql('km');",
+                  "    pm.expect(json.temperature).to.be.a('number');",
+                  "    pm.expect(json.humidity_pct).to.be.within(0, 100);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=London",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "London"}]
+            }
+          }
+        },
+        {
+          "name": "01.2 Get Current Weather (New York - Imperial Units)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Imperial units converted correctly (°F, mph, miles)', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('New York');",
+                  "    pm.expect(json.unit).to.eql('°F');",
+                  "    pm.expect(json.wind_unit).to.eql('mph');",
+                  "    pm.expect(json.visibility_unit).to.eql('miles');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=New York&units=imperial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [
+                {"key": "city", "value": "New York"},
+                {"key": "units", "value": "imperial"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "01.3 Get Current Weather (Tokyo - Active Typhoon Zone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('High wind speed and storm condition detected', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('Tokyo');",
+                  "    pm.expect(json.wind_speed).to.be.above(30.0);",
+                  "    pm.expect(json.condition).to.include('Storm');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=Tokyo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "Tokyo"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_Forecast_and_Historical",
+      "item": [
+        {
+          "name": "02.1 Get 5-Day Weather Forecast (Paris)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Forecast contains 5 chronological daily projections', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.forecast_days).to.eql(5);",
+                  "    pm.expect(json.forecast.length).to.eql(5);",
+                  "    json.forecast.forEach(function(day) {",
+                  "        pm.expect(day).to.have.property('date');",
+                  "        pm.expect(day.max_temp).to.be.at.least(day.min_temp);",
+                  "        pm.expect(day.chance_of_rain_pct).to.be.within(0, 100);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "forecast"],
+              "query": [
+                {"key": "city", "value": "Paris"},
+                {"key": "days", "value": "5"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "02.2 Get Historical Weather Logs (London)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Historical records returned with timestamps', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('London');",
+                  "    pm.expect(json.total_records).to.be.at.least(1);",
+                  "    pm.expect(json.records[0]).to.have.property('recorded_at');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/historical?city=London",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "historical"],
+              "query": [{"key": "city", "value": "London"}]
+            }
+          }
+        },
+        {
+          "name": "02.3 Get Weather Statistical Aggregates (London)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Calculates valid min, max, and avg temperatures', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.city).to.eql('London');",
+                  "    pm.expect(json.max_temp_c).to.be.at.least(json.min_temp_c);",
+                  "    pm.expect(json.avg_temp_c).to.be.within(json.min_temp_c, json.max_temp_c);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/stats?city=London",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "stats"],
+              "query": [{"key": "city", "value": "London"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03_Hazard_Alerts_and_AirQuality",
+      "item": [
+        {
+          "name": "03.1 Get Active Severe Weather Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns list of active alerts with required fields', function () {",
+                  "    var alerts = pm.response.json();",
+                  "    pm.expect(alerts).to.be.an('array');",
+                  "    pm.expect(alerts.length).to.be.at.least(2);",
+                  "    var alert = alerts[0];",
+                  "    pm.expect(alert).to.have.property('severity');",
+                  "    pm.expect(alert).to.have.property('headline');",
+                  "    pm.expect(alert).to.have.property('instructions');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "03.2 Filter Alerts by City (Tokyo Typhoon Warning)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns EXTREME typhoon warning for Tokyo', function () {",
+                  "    var alerts = pm.response.json();",
+                  "    pm.expect(alerts[0].city).to.eql('Tokyo');",
+                  "    pm.expect(alerts[0].severity).to.eql('EXTREME');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/alerts?city=Tokyo",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "alerts"],
+              "query": [{"key": "city", "value": "Tokyo"}]
+            }
+          }
+        },
+        {
+          "name": "03.3 Get Air Quality Index (Mumbai - Unhealthy Advisory)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('AQI categorization and health advisory', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('Mumbai');",
+                  "    pm.expect(json.aqi).to.be.above(100);",
+                  "    pm.expect(json.category).to.eql('Unhealthy');",
+                  "    pm.expect(json.health_advisory).to.include('filtration masks');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/air-quality?city=Mumbai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "air-quality"],
+              "query": [{"key": "city", "value": "Mumbai"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04_Station_Ingestion_and_Management",
+      "item": [
+        {
+          "name": "04.1 List All Weather Station Cities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Catalog contains at least 10 stations', function () {",
+                  "    var cities = pm.response.json();",
+                  "    pm.expect(cities.length).to.be.at.least(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/cities",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "cities"]
+            }
+          }
+        },
+        {
+          "name": "04.2 Ingest Weather Observation (Authorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Ingestion confirmed with new record_id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('SUCCESS');",
+                  "    pm.expect(json.record_id).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "X-API-Key", "value": "{{apiKey}}", "type": "text"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_name\": \"London\",\n  \"temp_c\": 17.5,\n  \"humidity\": 68,\n  \"wind_kph\": 14.5,\n  \"wind_direction\": \"SW\",\n  \"pressure_mb\": 1015.0,\n  \"visibility_km\": 10.0,\n  \"condition\": \"Partly Cloudy\",\n  \"condition_code\": 1003,\n  \"uv_index\": 3.5,\n  \"air_quality_index\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "observations"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05_Negative_Validation_Cases",
+      "item": [
+        {
+          "name": "05.1 Missing City Parameter (422 Unprocessable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Error payload conforms to RFC 7807', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('UNPROCESSABLE_ENTITY');",
+                  "    pm.expect(json.details).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"]
+            }
+          }
+        },
+        {
+          "name": "05.2 Non-Existent City (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error indicates CITY_NOT_FOUND', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CITY_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=AtlantisLostCity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "AtlantisLostCity"}]
+            }
+          }
+        },
+        {
+          "name": "05.3 Out of Bounds Forecast Days (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error indicates INVALID_DAYS_RANGE', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('INVALID_DAYS_RANGE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=14",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "forecast"],
+              "query": [
+                {"key": "city", "value": "Paris"},
+                {"key": "days", "value": "14"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.4 Ingestion Missing API Key (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Error indicates UNAUTHORIZED', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('UNAUTHORIZED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_name\": \"London\",\n  \"temp_c\": 17.5,\n  \"humidity\": 68,\n  \"wind_kph\": 14.5,\n  \"wind_direction\": \"SW\",\n  \"pressure_mb\": 1015.0,\n  \"visibility_km\": 10.0,\n  \"condition\": \"Partly Cloudy\",\n  \"condition_code\": 1003,\n  \"uv_index\": 3.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "observations"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06_Security_and_SQLi_Resilience",
+      "item": [
+        {
+          "name": "06.1 SQL Injection Attack Resilience (404 Sanitized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 (Sanitized parameterized lookup)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('No SQL syntax errors or 500 leakages', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CITY_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "' OR '1'='1"}]
+            }
+          }
+        },
+        {
+          "name": "06.2 SQL UNION Injection Resilience (404 Sanitized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Safely handled by parameterized ORM query', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CITY_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=London' UNION SELECT 1,2,3,4,5,6,7--",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "London' UNION SELECT 1,2,3,4,5,6,7--"}]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

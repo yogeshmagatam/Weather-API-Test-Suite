@@ -10,7 +10,7 @@ from scripts.init_db import initialize_database
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
-    """Ensure test database is freshly initialized with schema and seed data before test session."""
+    """Ensure weather database is freshly initialized before test session."""
     initialize_database()
 
 @pytest.fixture(scope="function")
@@ -45,22 +45,7 @@ def valid_api_headers() -> dict:
 @pytest.fixture
 def invalid_api_headers() -> dict:
     """Unauthorized / invalid API Key headers."""
-    return {"X-API-Key": "completely_invalid_token_999"}
-
-@pytest.fixture
-def sample_passenger_payload() -> dict:
-    """Generates valid payload for flight booking creation."""
-    return {
-        "flight_id": 2,  # AF-022 has 180 available seats
-        "seat_number": "19A",
-        "passenger": {
-            "first_name": "Daniel",
-            "last_name": "Craig",
-            "email": "daniel.craig@mi6-qa.gov.uk",
-            "passport_number": "GB007291047",
-            "phone": "+44 7700 900007"
-        }
-    }
+    return {"X-API-Key": "unauthorized_token_xyz_999"}
 
 @pytest.fixture
 def sample_weather_observation() -> dict:
@@ -77,4 +62,16 @@ def sample_weather_observation() -> dict:
         "condition_code": 1003,
         "uv_index": 3.8,
         "air_quality_index": 29
+    }
+
+@pytest.fixture
+def sample_city_payload() -> dict:
+    """Generates valid payload for registering a new weather monitoring station city."""
+    return {
+        "name": "Reykjavik",
+        "country": "Iceland",
+        "country_code": "IS",
+        "latitude": 64.1466,
+        "longitude": -21.9426,
+        "timezone": "Atlantic/Reykjavik"
     }

@@ -1,2 +1,2 @@
-"""Weather and Flight-Booking API Package."""
+"""Weather API Package."""
 __version__ = "1.0.0"
