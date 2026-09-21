@@ -1,0 +1,65 @@
+name: SkyPulse API Test Automation CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test-automation:
+    name: Run Pytest, Postman & SQL Regression
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.14"]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Set up Node.js for Newman
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Initialize SQLite Relational Database
+        run: |
+          python scripts/init_db.py
+
+      - name: Start FastAPI Background Service
+        run: |
+          python -m uvicorn api.app:app --host 127.0.0.1 --port 8000 &
+          sleep 3
+          curl -f http://127.0.0.1:8000/health
+
+      - name: Run Pytest Automated Test Suite
+        run: |
+          pytest tests/ -v --cov=api --cov-report=term-missing --html=reports/test_report.html --self-contained-html
+
+      - name: Run Postman Collection via Newman CLI
+        run: |
+          npx newman run postman/Weather_Flight_API_Test_Suite.postman_collection.json -e postman/Weather_API_CI.postman_environment.json --reporters cli
+
+      - name: Run Executive Regression Runner
+        run: |
+          python scripts/run_regression.py
+
+      - name: Upload Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report-py${{ matrix.python-version }}
+          path: reports/

@@ -1,0 +1,619 @@
+{
+  "info": {
+    "_postman_id": "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d",
+    "name": "Weather & Flight-Booking API Test Suite",
+    "description": "Comprehensive automated API test suite covering Weather Telemetry, Forecast Projections, Hazard Alerts, Flight Scheduling, Seat Reservations, Concurrency Collisions, and Aviation Weather Advisories.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01_Weather_API_Positive_Cases",
+      "item": [
+        {
+          "name": "01.1 Get Current Weather (London - Metric Default)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response time is under 300ms SLA', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(300);",
+                  "});",
+                  "pm.test('Schema validation: Location & metric units', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('London');",
+                  "    pm.expect(json.unit).to.eql('°C');",
+                  "    pm.expect(json.wind_unit).to.eql('km/h');",
+                  "    pm.expect(json.temperature).to.be.a('number');",
+                  "    pm.expect(json.humidity_pct).to.be.within(0, 100);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=London",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "London"}]
+            }
+          }
+        },
+        {
+          "name": "01.2 Get Current Weather (New York - Imperial Units)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Imperial units converted correctly (°F, mph, miles)', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.location.city).to.eql('New York');",
+                  "    pm.expect(json.unit).to.eql('°F');",
+                  "    pm.expect(json.wind_unit).to.eql('mph');",
+                  "    pm.expect(json.visibility_unit).to.eql('miles');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=New York&units=imperial",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [
+                {"key": "city", "value": "New York"},
+                {"key": "units", "value": "imperial"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "01.3 Get 5-Day Weather Forecast (Paris)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Forecast contains exactly 5 chronological daily projections', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.forecast_days).to.eql(5);",
+                  "    pm.expect(json.forecast.length).to.eql(5);",
+                  "    json.forecast.forEach(function(day) {",
+                  "        pm.expect(day).to.have.property('date');",
+                  "        pm.expect(day.max_temp).to.be.at.least(day.min_temp);",
+                  "        pm.expect(day.chance_of_rain_pct).to.be.within(0, 100);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/forecast?city=Paris&days=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "forecast"],
+              "query": [
+                {"key": "city", "value": "Paris"},
+                {"key": "days", "value": "5"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "01.4 Get Active Weather Hazard Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns list of active alerts with required fields', function () {",
+                  "    var alerts = pm.response.json();",
+                  "    pm.expect(alerts).to.be.an('array');",
+                  "    pm.expect(alerts.length).to.be.at.least(1);",
+                  "    var alert = alerts[0];",
+                  "    pm.expect(alert).to.have.property('severity');",
+                  "    pm.expect(alert).to.have.property('headline');",
+                  "    pm.expect(alert).to.have.property('instructions');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "alerts"]
+            }
+          }
+        },
+        {
+          "name": "01.5 Ingest Weather Observation (Authorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Ingestion confirmed with new record_id', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('SUCCESS');",
+                  "    pm.expect(json.record_id).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "X-API-Key", "value": "{{apiKey}}", "type": "text"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_name\": \"London\",\n  \"temp_c\": 17.5,\n  \"humidity\": 68,\n  \"wind_kph\": 14.5,\n  \"wind_direction\": \"SW\",\n  \"pressure_mb\": 1015.0,\n  \"visibility_km\": 10.0,\n  \"condition\": \"Partly Cloudy\",\n  \"condition_code\": 1003,\n  \"uv_index\": 3.5,\n  \"air_quality_index\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "observations"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_Weather_API_Negative_Cases",
+      "item": [
+        {
+          "name": "02.1 Missing City Parameter (422 Unprocessable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Error payload conforms to RFC 7807', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('UNPROCESSABLE_ENTITY');",
+                  "    pm.expect(json.details).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"]
+            }
+          }
+        },
+        {
+          "name": "02.2 Non-Existent City (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error indicates CITY_NOT_FOUND', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CITY_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=AtlantisLostCity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "AtlantisLostCity"}]
+            }
+          }
+        },
+        {
+          "name": "02.3 Ingestion Missing API Key (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Error indicates UNAUTHORIZED', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('UNAUTHORIZED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"city_name\": \"London\",\n  \"temp_c\": 17.5,\n  \"humidity\": 68,\n  \"wind_kph\": 14.5,\n  \"wind_direction\": \"SW\",\n  \"pressure_mb\": 1015.0,\n  \"visibility_km\": 10.0,\n  \"condition\": \"Partly Cloudy\",\n  \"condition_code\": 1003,\n  \"uv_index\": 3.5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/observations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "observations"]
+            }
+          }
+        },
+        {
+          "name": "02.4 SQL Injection Attack Resilience (404 Sanitized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404 (Sanitized parameterized lookup)', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('No SQL syntax errors or 500 leakages', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('CITY_NOT_FOUND');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/weather/current?city=' OR '1'='1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "weather", "current"],
+              "query": [{"key": "city", "value": "' OR '1'='1"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03_Flight_Booking_Positive_Flow",
+      "item": [
+        {
+          "name": "03.1 Search Flights (LHR to JFK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Matching flights found with available seats', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.total_matches).to.be.at.least(1);",
+                  "    var flight = json.flights[0];",
+                  "    pm.expect(flight.flight_number).to.eql('BA-178');",
+                  "    pm.expect(flight.available_seats).to.be.above(0);",
+                  "    pm.environment.set('test_flight_id', flight.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/search?origin=LHR&destination=JFK",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "search"],
+              "query": [
+                {"key": "origin", "value": "LHR"},
+                {"key": "destination", "value": "JFK"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.2 Create Flight Booking (Dynamic Chaining)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Generate unique passport and random seat",
+                  "var randomNum = Math.floor(100000 + Math.random() * 900000);",
+                  "var passport = 'US' + randomNum;",
+                  "var seatRow = Math.floor(10 + Math.random() * 20);",
+                  "var seat = seatRow + 'C';",
+                  "pm.environment.set('temp_passport', passport);",
+                  "pm.environment.set('temp_seat', seat);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Booking created and booking_ref saved to environment', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.booking_ref).to.match(/^BK-[A-Z0-9]{6}$/);",
+                  "    pm.expect(json.status).to.eql('CONFIRMED');",
+                  "    pm.environment.set('booking_ref', json.booking_ref);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flight_id\": 2,\n  \"seat_number\": \"{{temp_seat}}\",\n  \"passenger\": {\n    \"first_name\": \"Postman\",\n    \"last_name\": \"Tester\",\n    \"email\": \"postman.tester@automation-qa.org\",\n    \"passport_number\": \"{{temp_passport}}\",\n    \"phone\": \"+1 555 987 6543\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "03.3 Get Booking by Reference (Chained Variable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retrieved booking matches chained reference', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.booking_ref).to.eql(pm.environment.get('booking_ref'));",
+                  "    pm.expect(json.passenger_email).to.eql('postman.tester@automation-qa.org');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/{{booking_ref}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "bookings", "{{booking_ref}}"]
+            }
+          }
+        },
+        {
+          "name": "03.4 Cancel Booking (Refund & Inventory Release)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Booking cancelled with refund amount', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('CANCELLED');",
+                  "    pm.expect(json.refund_amount).to.be.above(0);",
+                  "    pm.expect(json.cancelled_at).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings/{{booking_ref}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "bookings", "{{booking_ref}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04_Flight_Booking_Negative_Cases",
+      "item": [
+        {
+          "name": "04.1 Duplicate Seat Collision (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Error indicates SEAT_ALREADY_RESERVED', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('SEAT_ALREADY_RESERVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flight_id\": 1,\n  \"seat_number\": \"12A\",\n  \"passenger\": {\n    \"first_name\": \"Collision\",\n    \"last_name\": \"Test\",\n    \"email\": \"collision@test.com\",\n    \"passport_number\": \"US554433221\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "04.2 Search Identical Origin & Destination (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Error indicates INVALID_ROUTE', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.error).to.eql('INVALID_ROUTE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/search?origin=LHR&destination=LHR",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "search"],
+              "query": [
+                {"key": "origin", "value": "LHR"},
+                {"key": "destination", "value": "LHR"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05_Weather_Flight_Integration",
+      "item": [
+        {
+          "name": "05.1 Destination Weather Advisory - Tokyo Typhoon (GROUNDED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Aviation advisory evaluates severe typhoon to GROUNDED', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.destination).to.eql('HND');",
+                  "    pm.expect(json.destination_city).to.eql('Tokyo');",
+                  "    pm.expect(json.advisory_status).to.eql('GROUNDED');",
+                  "    pm.expect(json.active_alerts_count).to.be.at.least(1);",
+                  "    pm.expect(json.recommendation).to.include('Visual approach suspended');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/7/weather-advisory",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "7", "weather-advisory"]
+            }
+          }
+        },
+        {
+          "name": "05.2 Destination Weather Advisory - New York JFK (CLEARED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Aviation advisory evaluates clear weather to CLEARED', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.destination).to.eql('JFK');",
+                  "    pm.expect(json.advisory_status).to.eql('CLEARED');",
+                  "    pm.expect(json.dispatch_code).to.eql('DISPATCH-CLR-01');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flights/1/weather-advisory",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flights", "1", "weather-advisory"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
